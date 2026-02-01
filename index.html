@@ -44,11 +44,38 @@
             X, BookOpen, Scroll, Cross, HeartHandshake, UserCheck, 
             ArrowRight, LayoutList, Share2, Plus, Trash2, Save, 
             Edit3, Settings, Star, Zap, Globe, Anchor, Music, Lightbulb,
-            HelpCircle, MessageCircle, AlertCircle, Feather, MessageSquare, Loader2
+            HelpCircle, MessageCircle, AlertCircle, Feather, MessageSquare, Loader2, CloudOff, Cloud, CheckCircle2, WifiOff
         } from 'https://esm.sh/lucide-react@0.294.0';
 
-        // NOTA: Para reativar o Firebase, você precisa criar o Banco de Dados Firestore no Console do Firebase primeiro.
-        // Por enquanto, rodaremos em modo LOCAL (Memória) para garantir que funcione sem erros.
+        // --- FIREBASE IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // --- CONFIGURAÇÃO DO FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCz4kytGbwkr3eSdz1fQCRTnQSxZ2z3mgw",
+            authDomain: "aula-interativa-c0dfc.firebaseapp.com",
+            projectId: "aula-interativa-c0dfc",
+            storageBucket: "aula-interativa-c0dfc.firebasestorage.app",
+            messagingSenderId: "576874052571",
+            appId: "1:576874052571:web:cb1e6cbf6ba62a5b3545fe"
+        };
+
+        // Inicialização do Firebase (Com tratamento de erro preventivo)
+        let app, db, auth;
+        let firebaseInitialized = false;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            firebaseInitialized = true;
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase:", e);
+        }
+        
+        // ID do app para organizar a coleção
+        const APP_COLLECTION_ID = "aula-interativa-c0dfc"; 
 
         // --- UTILITÁRIOS DE ÍCONES E CORES ---
 
@@ -103,85 +130,82 @@
             }
         };
 
-        // --- DADOS INICIAIS ---
-        const initialLessons = [
-            {
-                id: 1,
-                mainTitle: "O Filho que Redime",
-                subtitle: "Do Cordeiro da Páscoa à Reconciliação",
-                description: "Um estudo profundo sobre Jesus como o Cordeiro de Deus.",
-                mainInfo: {
-                    title: "Texto Principal",
-                    subTitle: "João 1:29",
-                    content: "No dia seguinte João viu a Jesus, que vinha para ele, e disse: **Eis o Cordeiro de Deus, que tira o pecado do mundo.**",
-                    iconName: "book",
-                    colorKey: "red"
+        // --- DADOS INICIAIS (SEED) ---
+        const initialLessonData = {
+            mainTitle: "O Filho que Redime",
+            subtitle: "Do Cordeiro da Páscoa à Reconciliação",
+            description: "Um estudo profundo sobre Jesus como o Cordeiro de Deus.",
+            mainInfo: {
+                title: "Texto Principal",
+                subTitle: "João 1:29",
+                content: "No dia seguinte João viu a Jesus, que vinha para ele, e disse: **Eis o Cordeiro de Deus, que tira o pecado do mundo.**",
+                iconName: "book",
+                colorKey: "red"
+            },
+            introInfo: {
+                title: "Introdução",
+                subTitle: "Reflexão Inicial",
+                content: "**Perguntas para começar:**\n\n1. Vocês já se sentiram afastados de alguém?\n\n2. Já se reaproximaram?\n\n3. Como foi a reconciliação?\n\n4. Quem deu o primeiro passo?",
+                iconName: "chat",
+                colorKey: "slate"
+            },
+            steps: [
+                {
+                    id: "I",
+                    title: "Jesus: O Cordeiro",
+                    subTitle: "João 1.29",
+                    iconName: "star",
+                    colorKey: "blue",
+                    summary: "A Páscoa apontava para Jesus, o sacrifício perfeito.",
+                    content: `**1. A Páscoa apontava para Jesus**\nO povo de Israel celebrava a Páscoa lembrando a libertação do Egito. O cordeiro morto e o sangue nas portas eram sinais de livramento, uma figura profética do que Jesus faria na cruz.\n\n**2. Jesus é o Cordeiro perfeito**\nIsaías 53 apresenta o Servo Sofredor. João Batista declara: "Eis o Cordeiro de Deus que tira o pecado do mundo" (Jo 1.29). Ele foi o sacrifício final e definitivo.\n\n**3. O que Jesus fez por nós**\nDiferente dos sacrifícios antigos, Jesus morreu uma vez por todas (Hb 9.26). Ele não apenas cobre o pecado — Ele elimina o pecado. Em Cristo, somos perdoados, livres e restaurados.\n\n**4. Aplicação para a vida do jovem**\nNão precisamos viver presos ao passado ou ao pecado. Jesus oferece liberdade real. Seguir Jesus é viver uma vida transformada, marcada por gratidão e obediência.`
                 },
-                introInfo: {
-                    title: "Introdução",
-                    subTitle: "Reflexão Inicial",
-                    content: "**Perguntas para começar:**\n\n1. Vocês já se sentiram afastados de alguém?\n\n2. Já se reaproximaram?\n\n3. Como foi a reconciliação?\n\n4. Quem deu o primeiro passo?",
-                    iconName: "chat",
-                    colorKey: "slate"
+                {
+                    id: "II",
+                    title: "O Sangue de Cristo",
+                    subTitle: "Hebreus 9.22",
+                    iconName: "cross",
+                    colorKey: "red",
+                    summary: "Valor eterno e purificação pelo sangue.",
+                    content: `**Sacrifício Único**\nNo Antigo Testamento, os sacrifícios eram repetidos, mas Jesus ofereceu a si mesmo, derramando seu próprio sangue de uma vez por todas (Hb 9.22,25).\n\n**Valor Eterno**\nO sangue de Cristo tem valor eterno: por ele fomos libertos, salvos, comprados, perdoados e purificados (1Jo 1.7).\n\n**A Ceia do Senhor**\nO cálice representa o sangue de Cristo, lembrando o sacrifício que nos trouxe vida (Mt 26.27-28; 1Co 11.25).\n\n**Cumprimento Pleno**\nNo Novo Testamento, a Páscoa se cumpre plenamente na morte e ressurreição de Jesus. O Cordeiro se conecta ao Servo Sofredor de Isaías 53, cumprido perfeitamente em Cristo.`
                 },
-                steps: [
-                    {
-                        id: "I",
-                        title: "Jesus: O Cordeiro",
-                        subTitle: "João 1.29",
-                        iconName: "star",
-                        colorKey: "blue",
-                        summary: "A Páscoa apontava para Jesus, o sacrifício perfeito.",
-                        content: `**1. A Páscoa apontava para Jesus**\nO povo de Israel celebrava a Páscoa lembrando a libertação do Egito. O cordeiro morto e o sangue nas portas eram sinais de livramento, uma figura profética do que Jesus faria na cruz.\n\n**2. Jesus é o Cordeiro perfeito**\nIsaías 53 apresenta o Servo Sofredor. João Batista declara: "Eis o Cordeiro de Deus que tira o pecado do mundo" (Jo 1.29). Ele foi o sacrifício final e definitivo.\n\n**3. O que Jesus fez por nós**\nDiferente dos sacrifícios antigos, Jesus morreu uma vez por todas (Hb 9.26). Ele não apenas cobre o pecado — Ele elimina o pecado. Em Cristo, somos perdoados, livres e restaurados.\n\n**4. Aplicação para a vida do jovem**\nNão precisamos viver presos ao passado ou ao pecado. Jesus oferece liberdade real. Seguir Jesus é viver uma vida transformada, marcada por gratidão e obediência.`
-                    },
-                    {
-                        id: "II",
-                        title: "O Sangue de Cristo",
-                        subTitle: "Hebreus 9.22",
-                        iconName: "cross",
-                        colorKey: "red",
-                        summary: "Valor eterno e purificação pelo sangue.",
-                        content: `**Sacrifício Único**\nNo Antigo Testamento, os sacrifícios eram repetidos, mas Jesus ofereceu a si mesmo, derramando seu próprio sangue de uma vez por todas (Hb 9.22,25).\n\n**Valor Eterno**\nO sangue de Cristo tem valor eterno: por ele fomos libertos, salvos, comprados, perdoados e purificados (1Jo 1.7).\n\n**A Ceia do Senhor**\nO cálice representa o sangue de Cristo, lembrando o sacrifício que nos trouxe vida (Mt 26.27-28; 1Co 11.25).\n\n**Cumprimento Pleno**\nNo Novo Testamento, a Páscoa se cumpre plenamente na morte e ressurreição de Jesus. O Cordeiro se conecta ao Servo Sofredor de Isaías 53, cumprido perfeitamente em Cristo.`
-                    },
-                    {
-                        id: "História",
-                        title: "Parábola da Aula",
-                        subTitle: "O Portão de Ferro",
-                        iconName: "book", 
-                        colorKey: "amber",
-                        summary: "Uma história ilustrativa sobre dívida e liberdade.",
-                        content: `**Parábola do Portão de Ferro**\n\nHavia uma cidade cercada por altos muros e um grande portão de ferro, sempre fechado. Do lado de dentro viviam pessoas que, por causa de antigas dívidas, não podiam sair. Muitos já haviam se esquecido de como era a liberdade.\n\nTodos os dias, o sino da cidade tocava lembrando:\n“A dívida ainda existe. O portão permanece fechado.”\n\nMuitos tentaram pagar o preço com boas ações, promessas e esforço, mas a dívida era alta demais.\n\nCerto dia, chegou à cidade o Filho do Dono da Terra. Ele não devia nada, era livre e puro. Ao ver o povo preso, decidiu fazer algo inesperado: foi até o guardião do portão e disse:\n— Eu pagarei a dívida deles.\n\nO guardião respondeu:\n— O preço não é ouro nem prata. É vida.\n\nSem hesitar, o Filho entregou seu próprio sangue como pagamento. O portão de ferro tremeu, as correntes caíram, e ele se abriu.\n\nAntes de partir, o Filho disse ao povo:\n— Vocês estão livres. Não voltem a viver como prisioneiros.\n\nAlguns atravessaram o portão chorando de alegria. Outros, mesmo livres, decidiram ficar, com medo da liberdade.\n\nMas os que saíram passaram a dizer uns aos outros:\n— “Não fomos libertos por mérito, mas por um preço que nunca poderíamos pagar.”\n\n**✨ Lição da parábola:**\nO portão é o pecado.\nA dívida é a condenação.\nO Filho é Jesus.\nO sangue é o preço da nossa redenção.\n\n“Fostes comprados por bom preço.” (1 Coríntios 6:20)`
-                    },
-                    {
-                        id: "III",
-                        title: "Redenção e Reconciliação",
-                        subTitle: "2 Coríntios 5.18",
-                        iconName: "heart",
-                        colorKey: "purple",
-                        summary: "Restaurando o relacionamento com o Pai.",
-                        content: `A redenção é a obra de Cristo pela qual fomos libertos do domínio do pecado e da condenação por meio do seu sacrifício na cruz. Jesus pagou o preço que nós não podíamos pagar, oferecendo sua própria vida para nos resgatar. Pela sua morte e ressurreição, somos perdoados, restaurados e chamados para uma nova vida em Deus.\n\nA reconciliação é o resultado dessa obra redentora: o relacionamento que estava rompido pelo pecado é restaurado. Em Cristo, deixamos de ser inimigos de Deus e passamos a viver em comunhão com o Pai, acolhidos por sua graça e amor. Assim, como redimidos e reconciliados, somos chamados a viver de forma transformada, refletindo essa nova realidade em nossos relacionamentos, atitudes e escolhas diárias.`
-                    },
-                    {
-                        id: "IV",
-                        title: "Vivendo Redimidos",
-                        subTitle: "Aplicação Prática",
-                        iconName: "user",
-                        colorKey: "green",
-                        summary: "Como viver a nova identidade no dia a dia.",
-                        content: `**Liberdade Real**\nA redenção nos libertou do domínio do pecado e do diabo por meio da obra de Cristo na cruz.\n\n**Vida Transformada**\nComo redimidos, somos chamados a viver de forma transformada, refletindo essa reconciliação no dia a dia.\n\n**Impacto nos Relacionamentos**\nA reconciliação com Deus impacta nossos relacionamentos, atitudes, palavras e escolhas.\n\n**Graça Condutora**\nNão negamos nossa condição de pecadores, mas permitimos que a graça nos conduza a Cristo.`
-                    },
-                    {
-                        id: "V",
-                        title: "Tipologia Pascal",
-                        subTitle: "Êxodo 12",
-                        iconName: "scroll",
-                        colorKey: "slate",
-                        summary: "A sombra profética que aponta para a cruz.",
-                        content: `**Profecia Viva**\nO cordeiro pascal é uma tipologia profética de Jesus Cristo.\n\n**Sacrifício Substitutivo**\nSeu sacrifício foi substitutivo, ocorrendo no lugar dos primogênitos (Êx 12.27), apontando para Cristo, que foi sacrificado por nós (1Co 5.7).\n\n**O Sangue nos Umbrais**\nO sangue que salvou as famílias israelitas (Êx 12.7,23) simboliza o sangue de Cristo derramado na cruz, que nos livra do pecado (Hb 9.22).\n\n**Conclusão Gloriosa**\nA Páscoa no Antigo Testamento aponta de forma gloriosa para a obra redentora de Jesus, realizada uma vez por todas.`
-                    }
-                ]
-            }
-        ];
+                {
+                    id: "História",
+                    title: "Parábola da Aula",
+                    subTitle: "O Portão de Ferro",
+                    iconName: "book", 
+                    colorKey: "amber",
+                    summary: "Uma história ilustrativa sobre dívida e liberdade.",
+                    content: `**Parábola do Portão de Ferro**\n\nHavia uma cidade cercada por altos muros e um grande portão de ferro, sempre fechado. Do lado de dentro viviam pessoas que, por causa de antigas dívidas, não podiam sair. Muitos já haviam se esquecido de como era a liberdade.\n\nTodos os dias, o sino da cidade tocava lembrando:\n“A dívida ainda existe. O portão permanece fechado.”\n\nMuitos tentaram pagar o preço com boas ações, promessas e esforço, mas a dívida era alta demais.\n\nCerto dia, chegou à cidade o Filho do Dono da Terra. Ele não devia nada, era livre e puro. Ao ver o povo preso, decidiu fazer algo inesperado: foi até o guardião do portão e disse:\n— Eu pagarei a dívida deles.\n\nO guardião respondeu:\n— O preço não é ouro nem prata. É vida.\n\nSem hesitar, o Filho entregou seu próprio sangue como pagamento. O portão de ferro tremeu, as correntes caíram, e ele se abriu.\n\nAntes de partir, o Filho disse ao povo:\n— Vocês estão livres. Não voltem a viver como prisioneiros.\n\nAlguns atravessaram o portão chorando de alegria. Outros, mesmo livres, decidiram ficar, com medo da liberdade.\n\nMas os que saíram passaram a dizer uns aos outros:\n— “Não fomos libertos por mérito, mas por um preço que nunca poderíamos pagar.”\n\n**✨ Lição da parábola:**\nO portão é o pecado.\nA dívida é a condenação.\nO Filho é Jesus.\nO sangue é o preço da nossa redenção.\n\n“Fostes comprados por bom preço.” (1 Coríntios 6:20)`
+                },
+                {
+                    id: "III",
+                    title: "Redenção e Reconciliação",
+                    subTitle: "2 Coríntios 5.18",
+                    iconName: "heart",
+                    colorKey: "purple",
+                    summary: "Restaurando o relacionamento com o Pai.",
+                    content: `A redenção é a obra de Cristo pela qual fomos libertos do domínio do pecado e da condenação por meio do seu sacrifício na cruz. Jesus pagou o preço que nós não podíamos pagar, oferecendo sua própria vida para nos resgatar. Pela sua morte e ressurreição, somos perdoados, restaurados e chamados para uma nova vida em Deus.\n\nA reconciliação é o resultado dessa obra redentora: o relacionamento que estava rompido pelo pecado é restaurado. Em Cristo, deixamos de ser inimigos de Deus e passamos a viver em comunhão com o Pai, acolhidos por sua graça e amor. Assim, como redimidos e reconciliados, somos chamados a viver de forma transformada, refletindo essa nova realidade em nossos relacionamentos, atitudes e escolhas diárias.`
+                },
+                {
+                    id: "IV",
+                    title: "Vivendo Redimidos",
+                    subTitle: "Aplicação Prática",
+                    iconName: "user",
+                    colorKey: "green",
+                    summary: "Como viver a nova identidade no dia a dia.",
+                    content: `**Liberdade Real**\nA redenção nos libertou do domínio do pecado e do diabo por meio da obra de Cristo na cruz.\n\n**Vida Transformada**\nComo redimidos, somos chamados a viver de forma transformada, refletindo essa reconciliação no dia a dia.\n\n**Impacto nos Relacionamentos**\nA reconciliação com Deus impacta nossos relacionamentos, atitudes, palavras e escolhas.\n\n**Graça Condutora**\nNão negamos nossa condição de pecadores, mas permitimos que a graça nos conduza a Cristo.`
+                },
+                {
+                    id: "V",
+                    title: "Tipologia Pascal",
+                    subTitle: "Êxodo 12",
+                    iconName: "scroll",
+                    colorKey: "slate",
+                    summary: "A sombra profética que aponta para a cruz.",
+                    content: `**Profecia Viva**\nO cordeiro pascal é uma tipologia profética de Jesus Cristo.\n\n**Sacrifício Substitutivo**\nSeu sacrifício foi substitutivo, ocorrendo no lugar dos primogênitos (Êx 12.27), apontando para Cristo, que foi sacrificado por nós (1Co 5.7).\n\n**O Sangue nos Umbrais**\nO sangue que salvou as famílias israelitas (Êx 12.7,23) simboliza o sangue de Cristo derramado na cruz, que nos livra do pecado (Hb 9.22).\n\n**Conclusão Gloriosa**\nA Páscoa no Antigo Testamento aponta de forma gloriosa para a obra redentora de Jesus, realizada uma vez por todas.`
+                }
+            ]
+        };
 
         // --- COMPONENTE: EDITOR DE AULA ---
         const LessonEditor = ({ lesson, onSave, onCancel, isSaving }) => {
@@ -232,12 +256,14 @@
                     <Edit3 className="w-5 h-5 text-indigo-600" /> Editor de Aula
                     </h2>
                     <div className="flex gap-3">
-                    <button onClick={onCancel} className="px-4 py-2 text-slate-500 hover:text-slate-800 font-medium">Cancelar</button>
+                    <button onClick={onCancel} className="px-4 py-2 text-slate-500 hover:text-slate-800 font-medium" disabled={isSaving}>Cancelar</button>
                     <button 
                         onClick={() => onSave(formData)} 
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2"
+                        disabled={isSaving}
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2 disabled:opacity-50"
                     >
-                        <Save className="w-4 h-4" /> Salvar
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {isSaving ? "Salvando..." : "Salvar"}
                     </button>
                     </div>
                 </div>
@@ -511,26 +537,119 @@
 
         // --- COMPONENTE PRINCIPAL ---
         const App = () => {
-            const [lessons, setLessons] = useState(initialLessons);
+            // Se houver erro de conexão, inicia com o backup local se disponível
+            const savedLocal = localStorage.getItem('cognito_backup');
+            const initialBackup = savedLocal ? JSON.parse(savedLocal) : [];
+            const hasLocalData = initialBackup.length > 0;
+
+            const [lessons, setLessons] = useState(hasLocalData ? initialBackup : [initialLessonData]);
             const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
             const [viewMode, setViewMode] = useState('map'); 
             const [selectedItem, setSelectedItem] = useState(null);
             const [isEditing, setIsEditing] = useState(false);
             const [showLessonList, setShowLessonList] = useState(false);
+            const [user, setUser] = useState(null);
+            const [isSaving, setIsSaving] = useState(false);
+            const [dbError, setDbError] = useState(null);
+            const [isLoading, setIsLoading] = useState(!hasLocalData); // Só mostra loading se NÃO tiver dados locais
 
-            const activeLesson = lessons[currentLessonIndex];
+            // 1. Autenticação Anônima
+            useEffect(() => {
+                if (!firebaseInitialized) return; // Não tenta logar se o firebase falhou
+                const initAuth = async () => {
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (error) {
+                        console.error("Erro no login anônimo", error);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
 
-            // Salvar LOCALMENTE (Na memória)
-            const handleSaveLesson = (updatedLesson) => {
+            // 2. Carregar Aulas do Firebase (com Fallback)
+            useEffect(() => {
+                // Mesmo sem user, queremos desativar o loading se demorar demais
+                // (Para modo offline inicial)
+                const timer = setTimeout(() => setIsLoading(false), 2000);
+
+                if (!user || !firebaseInitialized) return;
+
+                const q = query(
+                    collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'lessons'),
+                    orderBy('createdAt', 'desc')
+                );
+
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const loadedLessons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        setLessons(loadedLessons);
+                        // Atualiza backup local
+                        localStorage.setItem('cognito_backup', JSON.stringify(loadedLessons));
+                        setDbError(null);
+                    }
+                    setIsLoading(false); // Stop loading on success
+                }, (error) => {
+                    console.warn("Firebase Indisponível (Modo Offline Ativado):", error.code);
+                    setIsLoading(false); // Libera o loading imediatamente em caso de erro
+                    if (error.code === 'not-found') {
+                        setDbError("Banco de Dados Firestore não encontrado. Usando modo offline (Memória).");
+                    } else if (error.code === 'permission-denied') {
+                        setDbError("Sem permissão para o banco de dados. Usando modo offline.");
+                    } else {
+                        setDbError("Erro de conexão com o banco. Usando modo offline.");
+                    }
+                });
+
+                return () => {
+                    unsubscribe();
+                    clearTimeout(timer);
+                }
+            }, [user]);
+
+            const activeLesson = lessons[currentLessonIndex] || initialLessonData;
+
+            const handleSaveLesson = async (updatedLesson) => {
+                setIsSaving(true);
+                
+                // 1. Salvar Localmente Primeiro (Garantia)
                 const newLessons = [...lessons];
                 if (updatedLesson.id === 'new' || !updatedLesson.id) {
-                    updatedLesson.id = Date.now(); // ID temporário
-                    newLessons.push(updatedLesson);
-                    setCurrentLessonIndex(newLessons.length - 1);
+                    updatedLesson.id = 'temp_' + Date.now();
+                    newLessons.unshift(updatedLesson);
+                    setCurrentLessonIndex(0);
                 } else {
-                    newLessons[currentLessonIndex] = updatedLesson;
+                    const idx = newLessons.findIndex(l => l.id === updatedLesson.id);
+                    if (idx >= 0) newLessons[idx] = updatedLesson;
                 }
                 setLessons(newLessons);
+                localStorage.setItem('cognito_backup', JSON.stringify(newLessons));
+
+                // 2. Tentar Salvar no Firebase
+                // Se tiver erro de DB, nem tenta para não sujar o console, só avisa
+                if (user && !dbError && firebaseInitialized) {
+                    try {
+                        const collectionRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'lessons');
+                        
+                        const docData = { ...updatedLesson };
+                        if (docData.id && docData.id.startsWith('temp_')) {
+                            delete docData.id;
+                            await addDoc(collectionRef, { ...docData, createdAt: new Date() });
+                        } else {
+                            const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'lessons', docData.id);
+                            await setDoc(docRef, { ...docData, updatedAt: new Date() }, { merge: true });
+                        }
+                    } catch (error) {
+                        console.error("Erro ao salvar nuvem:", error);
+                        // Falha silenciosa na nuvem, pois já salvou local
+                    }
+                } else {
+                    // Modo offline explícito
+                    console.log("Salvando offline pois não há conexão com BD");
+                }
+                
+                setIsSaving(false);
                 setIsEditing(false);
             };
 
@@ -546,19 +665,40 @@
                 }
             };
 
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+                        <div className="flex flex-col items-center gap-4">
+                            <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+                            <p className="text-sm font-medium text-slate-400">Carregando aulas...</p>
+                        </div>
+                    </div>
+                );
+            }
+
             return (
-                <div className={`min-h-screen transition-colors duration-500 font-sans overflow-hidden
+                <div className={`min-h-screen transition-colors duration-500 font-sans overflow-hidden relative
                 ${viewMode === 'map' ? 'bg-[#0F172A]' : 'bg-slate-50'}`}>
+
+                {/* Banner de Erro do Banco de Dados */}
+                {dbError && (
+                    <div className="fixed top-0 left-0 right-0 bg-amber-500 text-white text-xs p-2 text-center z-[200] flex items-center justify-center gap-2 shadow-md animate-in slide-in-from-top-2">
+                        <WifiOff className="w-4 h-4" />
+                        <span>{dbError} (Modo Offline: seus dados ficam salvos apenas neste dispositivo)</span>
+                        <button onClick={() => setDbError(null)} className="ml-4 p-1 hover:bg-amber-600 rounded"><X className="w-3 h-3" /></button>
+                    </div>
+                )}
 
                 {isEditing && (
                     <LessonEditor 
                         lesson={activeLesson} 
                         onSave={handleSaveLesson} 
                         onCancel={() => setIsEditing(false)} 
+                        isSaving={isSaving}
                     />
                 )}
 
-                <nav className="fixed top-4 left-0 right-0 z-50 flex justify-center items-center pointer-events-none px-4">
+                <nav className="fixed top-8 left-0 right-0 z-50 flex justify-center items-center pointer-events-none px-4">
                     
                     <div className="pointer-events-auto absolute left-4 md:left-8">
                         <button 
@@ -577,7 +717,7 @@
                                 <div className="max-h-60 overflow-y-auto">
                                     {lessons.map((l, idx) => (
                                         <button 
-                                            key={l.id}
+                                            key={l.id || idx}
                                             onClick={() => { setCurrentLessonIndex(idx); setShowLessonList(false); }}
                                             className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${currentLessonIndex === idx ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-slate-600'}`}
                                         >
@@ -587,11 +727,10 @@
                                 </div>
                                 <button 
                                     onClick={() => {
+                                        // Cria nova aula em branco
                                         const newLesson = { id: 'new', mainTitle: "Nova Aula", subtitle: "Editável", description: "", steps: [] };
-                                        // Abre editor em nova aula (virtualmente)
-                                        // Aqui só passamos o objeto vazio para a lista temporária
-                                        setLessons([...lessons, newLesson]);
-                                        setCurrentLessonIndex(lessons.length);
+                                        setLessons([newLesson, ...lessons]);
+                                        setCurrentLessonIndex(0);
                                         setIsEditing(true);
                                         setShowLessonList(false);
                                     }}
