@@ -1,41 +1,676 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Presentes - Areli & Jordan</title>
-    
-    <!-- React & Babel -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Cognito Creator - Plataforma de Aulas</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Pinyon+Script&family=Playfair+Display:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
+    <!-- Babel para processar JSX (Versão Fixa para Estabilidade) -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    
+    <!-- Fonte Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .font-serif { font-family: 'Playfair Display', serif; }
-        .font-script { font-family: 'Pinyon Script', cursive; }
+        
+        /* Animação suave para o fundo */
+        @keyframes float {
+            0%, 100% { margin-top: 0px; }
+            50% { margin-top: -10px; }
+        }
+        
+        /* Esconder barra de rolagem mas manter funcionalidade */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body class="bg-[#f4f5f0] text-[#2f3b1c]">
+<body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
 
-    <script type="text/babel">
-        // TODO: Código React completo conforme enviado pelo usuário
-        // O conteúdo foi mantido conforme fornecido.
-        ...
+    <!-- Adicionado data-presets="react" para evitar erro de targets do Babel -->
+    <script type="text/babel" data-type="module" data-presets="react">
+        import React, { useState, useEffect } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+            X, BookOpen, Scroll, Cross, HeartHandshake, UserCheck, 
+            ArrowRight, LayoutList, Share2, Plus, Trash2, Save, 
+            Edit3, Settings, Star, Zap, Globe, Anchor, Music, Lightbulb,
+            HelpCircle, MessageCircle, AlertCircle, Feather, MessageSquare, Loader2
+        } from 'https://esm.sh/lucide-react@0.294.0';
+
+        // NOTA: Para reativar o Firebase, você precisa criar o Banco de Dados Firestore no Console do Firebase primeiro.
+        // Por enquanto, rodaremos em modo LOCAL (Memória) para garantir que funcione sem erros.
+
+        // --- UTILITÁRIOS DE ÍCONES E CORES ---
+
+        const iconMap = {
+            book: <BookOpen />,
+            scroll: <Scroll />,
+            cross: <Cross />,
+            heart: <HeartHandshake />,
+            user: <UserCheck />,
+            star: <Star />,
+            zap: <Zap />,
+            globe: <Globe />,
+            anchor: <Anchor />,
+            music: <Music />,
+            bulb: <Lightbulb />,
+            help: <HelpCircle />,
+            chat: <MessageCircle />,
+            alert: <AlertCircle />,
+            feather: <Feather />,
+            msg: <MessageSquare />
+        };
+
+        const getIcon = (name, className) => {
+            const Icon = iconMap[name] || <BookOpen />;
+            return React.cloneElement(Icon, { className });
+        };
+
+        const colorPalettes = {
+            red: {
+                bg: "bg-red-700", border: "border-red-500", text: "text-red-100",
+                light: "bg-red-50 text-red-900 border-red-200"
+            },
+            blue: {
+                bg: "bg-blue-600", border: "border-blue-500", text: "text-blue-100",
+                light: "bg-blue-50 text-blue-900 border-blue-200"
+            },
+            green: {
+                bg: "bg-emerald-600", border: "border-emerald-500", text: "text-emerald-100",
+                light: "bg-emerald-50 text-emerald-900 border-emerald-200"
+            },
+            amber: {
+                bg: "bg-amber-600", border: "border-amber-500", text: "text-amber-100",
+                light: "bg-amber-50 text-amber-900 border-amber-200"
+            },
+            purple: {
+                bg: "bg-purple-600", border: "border-purple-500", text: "text-purple-100",
+                light: "bg-purple-50 text-purple-900 border-purple-200"
+            },
+            slate: {
+                bg: "bg-slate-700", border: "border-slate-500", text: "text-slate-100",
+                light: "bg-slate-100 text-slate-900 border-slate-200"
+            }
+        };
+
+        // --- DADOS INICIAIS ---
+        const initialLessons = [
+            {
+                id: 1,
+                mainTitle: "O Filho que Redime",
+                subtitle: "Do Cordeiro da Páscoa à Reconciliação",
+                description: "Um estudo profundo sobre Jesus como o Cordeiro de Deus.",
+                mainInfo: {
+                    title: "Texto Principal",
+                    subTitle: "João 1:29",
+                    content: "No dia seguinte João viu a Jesus, que vinha para ele, e disse: **Eis o Cordeiro de Deus, que tira o pecado do mundo.**",
+                    iconName: "book",
+                    colorKey: "red"
+                },
+                introInfo: {
+                    title: "Introdução",
+                    subTitle: "Reflexão Inicial",
+                    content: "**Perguntas para começar:**\n\n1. Vocês já se sentiram afastados de alguém?\n\n2. Já se reaproximaram?\n\n3. Como foi a reconciliação?\n\n4. Quem deu o primeiro passo?",
+                    iconName: "chat",
+                    colorKey: "slate"
+                },
+                steps: [
+                    {
+                        id: "I",
+                        title: "Jesus: O Cordeiro",
+                        subTitle: "João 1.29",
+                        iconName: "star",
+                        colorKey: "blue",
+                        summary: "A Páscoa apontava para Jesus, o sacrifício perfeito.",
+                        content: `**1. A Páscoa apontava para Jesus**\nO povo de Israel celebrava a Páscoa lembrando a libertação do Egito. O cordeiro morto e o sangue nas portas eram sinais de livramento, uma figura profética do que Jesus faria na cruz.\n\n**2. Jesus é o Cordeiro perfeito**\nIsaías 53 apresenta o Servo Sofredor. João Batista declara: "Eis o Cordeiro de Deus que tira o pecado do mundo" (Jo 1.29). Ele foi o sacrifício final e definitivo.\n\n**3. O que Jesus fez por nós**\nDiferente dos sacrifícios antigos, Jesus morreu uma vez por todas (Hb 9.26). Ele não apenas cobre o pecado — Ele elimina o pecado. Em Cristo, somos perdoados, livres e restaurados.\n\n**4. Aplicação para a vida do jovem**\nNão precisamos viver presos ao passado ou ao pecado. Jesus oferece liberdade real. Seguir Jesus é viver uma vida transformada, marcada por gratidão e obediência.`
+                    },
+                    {
+                        id: "II",
+                        title: "O Sangue de Cristo",
+                        subTitle: "Hebreus 9.22",
+                        iconName: "cross",
+                        colorKey: "red",
+                        summary: "Valor eterno e purificação pelo sangue.",
+                        content: `**Sacrifício Único**\nNo Antigo Testamento, os sacrifícios eram repetidos, mas Jesus ofereceu a si mesmo, derramando seu próprio sangue de uma vez por todas (Hb 9.22,25).\n\n**Valor Eterno**\nO sangue de Cristo tem valor eterno: por ele fomos libertos, salvos, comprados, perdoados e purificados (1Jo 1.7).\n\n**A Ceia do Senhor**\nO cálice representa o sangue de Cristo, lembrando o sacrifício que nos trouxe vida (Mt 26.27-28; 1Co 11.25).\n\n**Cumprimento Pleno**\nNo Novo Testamento, a Páscoa se cumpre plenamente na morte e ressurreição de Jesus. O Cordeiro se conecta ao Servo Sofredor de Isaías 53, cumprido perfeitamente em Cristo.`
+                    },
+                    {
+                        id: "História",
+                        title: "Parábola da Aula",
+                        subTitle: "O Portão de Ferro",
+                        iconName: "book", 
+                        colorKey: "amber",
+                        summary: "Uma história ilustrativa sobre dívida e liberdade.",
+                        content: `**Parábola do Portão de Ferro**\n\nHavia uma cidade cercada por altos muros e um grande portão de ferro, sempre fechado. Do lado de dentro viviam pessoas que, por causa de antigas dívidas, não podiam sair. Muitos já haviam se esquecido de como era a liberdade.\n\nTodos os dias, o sino da cidade tocava lembrando:\n“A dívida ainda existe. O portão permanece fechado.”\n\nMuitos tentaram pagar o preço com boas ações, promessas e esforço, mas a dívida era alta demais.\n\nCerto dia, chegou à cidade o Filho do Dono da Terra. Ele não devia nada, era livre e puro. Ao ver o povo preso, decidiu fazer algo inesperado: foi até o guardião do portão e disse:\n— Eu pagarei a dívida deles.\n\nO guardião respondeu:\n— O preço não é ouro nem prata. É vida.\n\nSem hesitar, o Filho entregou seu próprio sangue como pagamento. O portão de ferro tremeu, as correntes caíram, e ele se abriu.\n\nAntes de partir, o Filho disse ao povo:\n— Vocês estão livres. Não voltem a viver como prisioneiros.\n\nAlguns atravessaram o portão chorando de alegria. Outros, mesmo livres, decidiram ficar, com medo da liberdade.\n\nMas os que saíram passaram a dizer uns aos outros:\n— “Não fomos libertos por mérito, mas por um preço que nunca poderíamos pagar.”\n\n**✨ Lição da parábola:**\nO portão é o pecado.\nA dívida é a condenação.\nO Filho é Jesus.\nO sangue é o preço da nossa redenção.\n\n“Fostes comprados por bom preço.” (1 Coríntios 6:20)`
+                    },
+                    {
+                        id: "III",
+                        title: "Redenção e Reconciliação",
+                        subTitle: "2 Coríntios 5.18",
+                        iconName: "heart",
+                        colorKey: "purple",
+                        summary: "Restaurando o relacionamento com o Pai.",
+                        content: `A redenção é a obra de Cristo pela qual fomos libertos do domínio do pecado e da condenação por meio do seu sacrifício na cruz. Jesus pagou o preço que nós não podíamos pagar, oferecendo sua própria vida para nos resgatar. Pela sua morte e ressurreição, somos perdoados, restaurados e chamados para uma nova vida em Deus.\n\nA reconciliação é o resultado dessa obra redentora: o relacionamento que estava rompido pelo pecado é restaurado. Em Cristo, deixamos de ser inimigos de Deus e passamos a viver em comunhão com o Pai, acolhidos por sua graça e amor. Assim, como redimidos e reconciliados, somos chamados a viver de forma transformada, refletindo essa nova realidade em nossos relacionamentos, atitudes e escolhas diárias.`
+                    },
+                    {
+                        id: "IV",
+                        title: "Vivendo Redimidos",
+                        subTitle: "Aplicação Prática",
+                        iconName: "user",
+                        colorKey: "green",
+                        summary: "Como viver a nova identidade no dia a dia.",
+                        content: `**Liberdade Real**\nA redenção nos libertou do domínio do pecado e do diabo por meio da obra de Cristo na cruz.\n\n**Vida Transformada**\nComo redimidos, somos chamados a viver de forma transformada, refletindo essa reconciliação no dia a dia.\n\n**Impacto nos Relacionamentos**\nA reconciliação com Deus impacta nossos relacionamentos, atitudes, palavras e escolhas.\n\n**Graça Condutora**\nNão negamos nossa condição de pecadores, mas permitimos que a graça nos conduza a Cristo.`
+                    },
+                    {
+                        id: "V",
+                        title: "Tipologia Pascal",
+                        subTitle: "Êxodo 12",
+                        iconName: "scroll",
+                        colorKey: "slate",
+                        summary: "A sombra profética que aponta para a cruz.",
+                        content: `**Profecia Viva**\nO cordeiro pascal é uma tipologia profética de Jesus Cristo.\n\n**Sacrifício Substitutivo**\nSeu sacrifício foi substitutivo, ocorrendo no lugar dos primogênitos (Êx 12.27), apontando para Cristo, que foi sacrificado por nós (1Co 5.7).\n\n**O Sangue nos Umbrais**\nO sangue que salvou as famílias israelitas (Êx 12.7,23) simboliza o sangue de Cristo derramado na cruz, que nos livra do pecado (Hb 9.22).\n\n**Conclusão Gloriosa**\nA Páscoa no Antigo Testamento aponta de forma gloriosa para a obra redentora de Jesus, realizada uma vez por todas.`
+                    }
+                ]
+            }
+        ];
+
+        // --- COMPONENTE: EDITOR DE AULA ---
+        const LessonEditor = ({ lesson, onSave, onCancel, isSaving }) => {
+            const [formData, setFormData] = useState(lesson || {
+                mainTitle: "",
+                subtitle: "",
+                description: "",
+                steps: []
+            });
+
+            const handleChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const handleStepChange = (index, field, value) => {
+                const newSteps = [...formData.steps];
+                newSteps[index] = { ...newSteps[index], [field]: value };
+                setFormData(prev => ({ ...prev, steps: newSteps }));
+            };
+
+            const addStep = () => {
+                setFormData(prev => ({
+                ...prev,
+                steps: [
+                    ...prev.steps,
+                    {
+                    id: (prev.steps.length + 1).toString(),
+                    title: "Novo Tópico",
+                    subTitle: "",
+                    iconName: "bulb",
+                    colorKey: "slate",
+                    summary: "Resumo...",
+                    content: "Conteúdo..."
+                    }
+                ]
+                }));
+            };
+
+            const removeStep = (index) => {
+                const newSteps = formData.steps.filter((_, i) => i !== index);
+                setFormData(prev => ({ ...prev, steps: newSteps }));
+            };
+
+            return (
+                <div className="fixed inset-0 z-[100] bg-slate-100 flex flex-col animate-in slide-in-from-bottom-10">
+                <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm shrink-0">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <Edit3 className="w-5 h-5 text-indigo-600" /> Editor de Aula
+                    </h2>
+                    <div className="flex gap-3">
+                    <button onClick={onCancel} className="px-4 py-2 text-slate-500 hover:text-slate-800 font-medium">Cancelar</button>
+                    <button 
+                        onClick={() => onSave(formData)} 
+                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium flex items-center gap-2"
+                    >
+                        <Save className="w-4 h-4" /> Salvar
+                    </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 md:p-10">
+                    <div className="max-w-4xl mx-auto space-y-8">
+                    
+                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 className="font-bold text-slate-400 uppercase text-xs tracking-wider mb-4">Informações Gerais</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
+                            <input 
+                            type="text" 
+                            value={formData.mainTitle}
+                            onChange={(e) => handleChange('mainTitle', e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Subtítulo</label>
+                            <input 
+                            type="text" 
+                            value={formData.subtitle}
+                            onChange={(e) => handleChange('subtitle', e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            />
+                        </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-slate-400 uppercase text-xs tracking-wider">Conteúdo da Aula</h3>
+                        <button onClick={addStep} className="text-sm text-indigo-600 font-bold flex items-center gap-1 hover:underline">
+                            <Plus className="w-4 h-4" /> Adicionar Tópico
+                        </button>
+                        </div>
+
+                        {formData.steps.map((step, index) => (
+                        <div key={index} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative group">
+                            <button 
+                            onClick={() => removeStep(index)}
+                            className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            title="Remover tópico"
+                            >
+                            <Trash2 className="w-4 h-4" />
+                            </button>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <div className="md:col-span-3 space-y-3 border-r border-slate-100 pr-4">
+                                <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Ícone</label>
+                                <select 
+                                    value={step.iconName}
+                                    onChange={(e) => handleStepChange(index, 'iconName', e.target.value)}
+                                    className="w-full px-2 py-2 rounded border border-slate-300 text-sm"
+                                >
+                                    {Object.keys(iconMap).map(k => <option key={k} value={k}>{k.toUpperCase()}</option>)}
+                                </select>
+                                </div>
+                                <div>
+                                <label className="block text-xs font-medium text-slate-500 mb-1">Cor</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.keys(colorPalettes).map(color => (
+                                    <button
+                                        key={color}
+                                        onClick={() => handleStepChange(index, 'colorKey', color)}
+                                        className={`w-6 h-6 rounded-full border-2 ${step.colorKey === color ? 'border-slate-800 scale-110' : 'border-transparent'} ${colorPalettes[color].bg.split(' ')[0]}`}
+                                    />
+                                    ))}
+                                </div>
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-9 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                <input 
+                                    type="text" 
+                                    value={step.title}
+                                    onChange={(e) => handleStepChange(index, 'title', e.target.value)}
+                                    className="w-full px-3 py-2 rounded border border-slate-300 text-sm font-bold"
+                                    placeholder="Título"
+                                />
+                                <input 
+                                    type="text" 
+                                    value={step.subTitle}
+                                    onChange={(e) => handleStepChange(index, 'subTitle', e.target.value)}
+                                    className="w-full px-3 py-2 rounded border border-slate-300 text-sm"
+                                    placeholder="Subtítulo"
+                                />
+                                </div>
+                                <textarea 
+                                value={step.content}
+                                onChange={(e) => handleStepChange(index, 'content', e.target.value)}
+                                className="w-full px-3 py-2 rounded border border-slate-300 text-sm h-32 font-mono text-slate-600 leading-snug"
+                                placeholder="Conteúdo completo..."
+                                />
+                            </div>
+                            </div>
+                        </div>
+                        ))}
+                    </div>
+
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE: MODAL ---
+        const Modal = ({ item, onClose }) => {
+            if (!item) return null;
+            const palette = colorPalettes[item.colorKey] || colorPalettes.slate;
+            const headerClass = palette.bg.replace('700', '600').replace('600', '600');
+
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+                <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[85vh]">
+                    <div className={`h-24 ${headerClass} relative flex items-center justify-center shrink-0`}>
+                    <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/30 text-white rounded-full">
+                        <X className="w-5 h-5" />
+                    </button>
+                    <div className="bg-white/20 p-3 rounded-full text-white backdrop-blur-md shadow-lg transform translate-y-6 border border-white/30">
+                        {getIcon(item.iconName, "w-8 h-8")}
+                    </div>
+                    </div>
+                    <div className="pt-10 pb-6 px-6 overflow-y-auto">
+                    <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-slate-900">{item.title}</h2>
+                        <p className="text-slate-500 font-medium text-sm">{item.subTitle}</p>
+                    </div>
+                    <div className="prose prose-sm prose-slate text-justify">
+                        {item.content.split('\n').map((line, idx) => {
+                        const clean = line.trim();
+                        if(!clean) return <br key={idx}/>;
+                        if(clean.startsWith('**')) return <h4 key={idx} className="font-bold text-slate-800 text-lg mt-4 mb-1">{clean.replace(/\*\*/g, '')}</h4>;
+                        return <p key={idx} className="mb-2 text-slate-600">{clean}</p>;
+                        })}
+                    </div>
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE: TRILHA ---
+        const TimelineView = ({ data, onSelect, onMainClick }) => {
+            return (
+                <div className="max-w-3xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative">
+                    <div className="absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-slate-300 md:-ml-px ml-0"></div>
+                    <div className="space-y-8">
+                    {data.steps.map((step, index) => {
+                        const isEven = index % 2 === 0;
+                        const palette = colorPalettes[step.colorKey] || colorPalettes.slate;
+                        
+                        return (
+                        <div key={index} className={`relative flex flex-col md:flex-row items-center ${isEven ? 'md:flex-row-reverse' : ''}`}>
+                            <div className="hidden md:block flex-1"></div>
+                            <div className="absolute left-4 md:left-1/2 -ml-3 md:-ml-4 w-8 h-8 rounded-full border-4 border-slate-50 bg-slate-800 text-white shadow-md z-10 flex items-center justify-center text-xs font-bold truncate">
+                            {step.id}
+                            </div>
+                            <div className="flex-1 w-full pl-10 md:pl-0">
+                            <div 
+                                onClick={() => onSelect(step)}
+                                className={`
+                                cursor-pointer bg-white p-5 rounded-xl shadow-sm border border-slate-200 
+                                hover:shadow-md hover:border-indigo-300 transition-all
+                                ${isEven ? 'md:mr-8' : 'md:ml-8'}
+                                `}
+                            >
+                                <div className="flex items-center gap-3 mb-2">
+                                <div className={`p-2 rounded-lg ${palette.light}`}>
+                                    {getIcon(step.iconName, "w-4 h-4")}
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-800">{step.title}</h3>
+                                </div>
+                                <p className="text-slate-600 text-sm line-clamp-2">{step.summary}</p>
+                            </div>
+                            </div>
+                        </div>
+                        );
+                    })}
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE: MAPA MENTAL ---
+        const MindMapView = ({ data, onSelect, onMainClick }) => {
+            const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+            useEffect(() => {
+                const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
+
+            const isMobile = dimensions.width < 768;
+            const radius = isMobile ? 130 : 220; 
+            const centerSize = isMobile ? 140 : 240; 
+            const bubbleSize = isMobile ? 90 : 150; 
+            const cx = dimensions.width / 2;
+            const cy = dimensions.height / 2;
+
+            return (
+                <div className="absolute inset-0 overflow-hidden bg-[#0F172A] animate-in fade-in duration-700">
+                <div className="absolute inset-0 pointer-events-none opacity-30">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-indigo-600 rounded-full blur-[120px]"></div>
+                </div>
+
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                    <circle cx={cx} cy={cy} r={radius} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="6 6" />
+                    {data.steps.map((item, index) => {
+                    const angleStep = (2 * Math.PI) / data.steps.length;
+                    const angle = index * angleStep - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    return <line key={index} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(255,255,255,0.2)" strokeWidth="1" />;
+                    })}
+                </svg>
+
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                    {/* NÓ CENTRAL INTERATIVO */}
+                    <button 
+                    onClick={onMainClick}
+                    className="absolute flex flex-col items-center justify-center text-center rounded-full bg-slate-900 border-4 border-slate-800 shadow-[0_0_50px_rgba(99,102,241,0.3)] z-20 pointer-events-auto transition-all duration-300 hover:scale-105 hover:shadow-[0_0_80px_rgba(99,102,241,0.6)] cursor-pointer group"
+                    style={{ width: centerSize, height: centerSize, left: cx - centerSize / 2, top: cy - centerSize / 2 }}
+                    >
+                    <BookOpen className={`${isMobile ? 'w-8 h-8' : 'w-12 h-12'} text-indigo-500 mb-2 group-hover:text-indigo-400 transition-colors`} />
+                    <h1 className={`${isMobile ? 'text-xs' : 'text-lg'} font-bold text-white uppercase tracking-widest leading-tight px-4 group-hover:text-indigo-100 transition-colors`}>
+                        {data.mainTitle}
+                    </h1>
+                    <span className="text-[10px] text-indigo-500/70 mt-2 uppercase tracking-wide opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-8">Ver Texto</span>
+                    </button>
+
+                    {data.steps.map((item, index) => {
+                    const angleStep = (2 * Math.PI) / data.steps.length;
+                    const angle = index * angleStep - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * radius;
+                    const y = cy + Math.sin(angle) * radius;
+                    const palette = colorPalettes[item.colorKey] || colorPalettes.slate;
+
+                    return (
+                        <button
+                        key={index}
+                        onClick={() => onSelect(item)}
+                        className={`
+                            absolute rounded-full flex flex-col items-center justify-center p-2
+                            transition-transform duration-300 hover:scale-110 cursor-pointer group z-30 pointer-events-auto
+                            shadow-xl border backdrop-blur-md ${palette.bg} ${palette.border} ${palette.text}
+                        `}
+                        style={{ width: bubbleSize, height: bubbleSize, left: x - bubbleSize / 2, top: y - bubbleSize / 2 }}
+                        >
+                        <div className="text-white mb-1 group-hover:-translate-y-1 transition-transform">
+                            {getIcon(item.iconName, isMobile ? "w-5 h-5" : "w-8 h-8")}
+                        </div>
+                        <span className={`font-bold text-white text-center leading-tight ${isMobile ? 'text-[9px]' : 'text-xs'}`}>
+                            {item.title}
+                        </span>
+                        </button>
+                    );
+                    })}
+                </div>
+                </div>
+            );
+        };
+
+        // --- COMPONENTE PRINCIPAL ---
+        const App = () => {
+            const [lessons, setLessons] = useState(initialLessons);
+            const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
+            const [viewMode, setViewMode] = useState('map'); 
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [isEditing, setIsEditing] = useState(false);
+            const [showLessonList, setShowLessonList] = useState(false);
+
+            const activeLesson = lessons[currentLessonIndex];
+
+            // Salvar LOCALMENTE (Na memória)
+            const handleSaveLesson = (updatedLesson) => {
+                const newLessons = [...lessons];
+                if (updatedLesson.id === 'new' || !updatedLesson.id) {
+                    updatedLesson.id = Date.now(); // ID temporário
+                    newLessons.push(updatedLesson);
+                    setCurrentLessonIndex(newLessons.length - 1);
+                } else {
+                    newLessons[currentLessonIndex] = updatedLesson;
+                }
+                setLessons(newLessons);
+                setIsEditing(false);
+            };
+
+            const handleMainClick = () => {
+                if (activeLesson.mainInfo) {
+                setSelectedItem(activeLesson.mainInfo);
+                }
+            };
+
+            const handleIntroClick = () => {
+                if (activeLesson.introInfo) {
+                setSelectedItem(activeLesson.introInfo);
+                }
+            };
+
+            return (
+                <div className={`min-h-screen transition-colors duration-500 font-sans overflow-hidden
+                ${viewMode === 'map' ? 'bg-[#0F172A]' : 'bg-slate-50'}`}>
+
+                {isEditing && (
+                    <LessonEditor 
+                        lesson={activeLesson} 
+                        onSave={handleSaveLesson} 
+                        onCancel={() => setIsEditing(false)} 
+                    />
+                )}
+
+                <nav className="fixed top-4 left-0 right-0 z-50 flex justify-center items-center pointer-events-none px-4">
+                    
+                    <div className="pointer-events-auto absolute left-4 md:left-8">
+                        <button 
+                            onClick={() => setShowLessonList(!showLessonList)}
+                            className="bg-white/10 backdrop-blur-md border border-white/20 p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/20 transition-all shadow-lg"
+                            title="Minhas Aulas"
+                        >
+                            <Settings className="w-5 h-5" />
+                        </button>
+                        
+                        {showLessonList && (
+                            <div className="absolute top-12 left-0 w-64 bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 border border-slate-200">
+                                <div className="p-3 bg-slate-50 border-b border-slate-100 font-bold text-xs text-slate-500 uppercase tracking-wider">
+                                    Aulas Disponíveis
+                                </div>
+                                <div className="max-h-60 overflow-y-auto">
+                                    {lessons.map((l, idx) => (
+                                        <button 
+                                            key={l.id}
+                                            onClick={() => { setCurrentLessonIndex(idx); setShowLessonList(false); }}
+                                            className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${currentLessonIndex === idx ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-slate-600'}`}
+                                        >
+                                            {l.mainTitle}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button 
+                                    onClick={() => {
+                                        const newLesson = { id: 'new', mainTitle: "Nova Aula", subtitle: "Editável", description: "", steps: [] };
+                                        // Abre editor em nova aula (virtualmente)
+                                        // Aqui só passamos o objeto vazio para a lista temporária
+                                        setLessons([...lessons, newLesson]);
+                                        setCurrentLessonIndex(lessons.length);
+                                        setIsEditing(true);
+                                        setShowLessonList(false);
+                                    }}
+                                    className="w-full text-left px-4 py-3 text-sm font-bold text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" /> Criar Nova Aula
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pointer-events-auto absolute right-4 md:right-8">
+                        <button 
+                            onClick={() => setIsEditing(true)}
+                            className="bg-indigo-600 border border-indigo-400 p-2 rounded-full text-white hover:bg-indigo-500 transition-all shadow-lg flex items-center gap-2 px-4"
+                        >
+                            <Edit3 className="w-4 h-4" /> <span className="hidden md:inline text-sm font-bold">Editar Aula</span>
+                        </button>
+                    </div>
+
+                    <div className="pointer-events-auto bg-white/10 backdrop-blur-md border border-white/20 p-1.5 rounded-full flex gap-1 shadow-2xl ring-1 ring-black/10">
+                    <button 
+                        onClick={() => setViewMode('timeline')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${viewMode === 'timeline' ? 'bg-white text-slate-900' : 'text-slate-300 hover:text-white'}`}
+                    >
+                        <LayoutList className="w-4 h-4" /> <span className="hidden sm:inline">Trilha</span>
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('map')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${viewMode === 'map' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white'}`}
+                    >
+                        <Share2 className="w-4 h-4" /> <span className="hidden sm:inline">Mapa</span>
+                    </button>
+                    </div>
+                </nav>
+
+                <main className="w-full h-screen relative">
+                    {viewMode === 'timeline' && (
+                    <div className="h-full overflow-y-auto pt-24 pb-10">
+                        <div className="text-center px-4 mb-6 animate-in slide-in-from-top-4">
+                        <h1 
+                            onClick={handleMainClick}
+                            className="text-3xl font-extrabold text-slate-900 tracking-tight cursor-pointer hover:text-indigo-600 transition-colors"
+                            title="Clique para ver o texto principal"
+                            >
+                            {activeLesson.mainTitle}
+                            </h1>
+                        <p className="text-sm text-slate-500 max-w-lg mx-auto">{activeLesson.subtitle}</p>
+                        </div>
+                        <TimelineView data={activeLesson} onSelect={setSelectedItem} onMainClick={handleMainClick} />
+                    </div>
+                    )}
+
+                    {viewMode === 'map' && (
+                    <MindMapView data={activeLesson} onSelect={setSelectedItem} onMainClick={handleMainClick} />
+                    )}
+
+                    {/* Botão de Introdução Flutuante */}
+                    <button 
+                    onClick={handleIntroClick}
+                    className="fixed bottom-6 right-6 z-40 bg-white/90 backdrop-blur border border-slate-200 shadow-xl rounded-full px-4 py-3 flex items-center gap-2 hover:bg-white hover:scale-105 transition-all group"
+                    >
+                    <div className="bg-indigo-100 p-1 rounded-full text-indigo-600">
+                        <MessageCircle className="w-5 h-5" />
+                    </div>
+                    <span className="text-sm font-bold text-slate-700 pr-2">Introdução</span>
+                    </button>
+
+                </main>
+
+                {selectedItem && (
+                    <Modal item={selectedItem} onClose={() => setSelectedItem(null)} />
+                )}
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
